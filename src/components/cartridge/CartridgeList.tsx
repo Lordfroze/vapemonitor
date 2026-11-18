@@ -114,7 +114,7 @@ export function CartridgeList({ initialLogs }: CartridgeListProps) {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-sm sm:max-w-md lg:max-w-lg">
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Edit Catatan Cartridge' : 'Tambah Catatan Cartridge'}</DialogTitle>
             <DialogDescription>
@@ -136,7 +136,7 @@ export function CartridgeList({ initialLogs }: CartridgeListProps) {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-sm sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Hapus Catatan</DialogTitle>
             <DialogDescription>Apakah Anda yakin ingin menghapus catatan ini? Tindakan ini tidak dapat dibatalkan.</DialogDescription>
@@ -154,8 +154,8 @@ export function CartridgeList({ initialLogs }: CartridgeListProps) {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right">
-          <div className={`flex items-center gap-3 p-4 rounded-lg border shadow-lg min-w-[300px] max-w-md ${
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-50 animate-in slide-in-from-right">
+          <div className={`flex items-center gap-3 p-4 rounded-lg border shadow-lg min-w-[280px] max-w-sm sm:max-w-md lg:max-w-lg ${
             toast.type === 'success' ? 'border-green-500 bg-green-500/10 text-green-400' : 'border-red-500 bg-red-500/10 text-red-400'
           }`}>
             {toast.type === 'success' ? (

@@ -13,7 +13,7 @@ export async function DashboardContent() {
   return (
     <>
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">Total Cartridge</CardTitle>
@@ -92,7 +92,7 @@ export async function DashboardContent() {
       </div>
 
       {/* Monitor Cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
         {/* Cartridge Monitor */}
         <Card>
           <CardHeader>
