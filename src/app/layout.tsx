@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/layout/Navigation";
 import { ToastProvider } from "@/components/ui/toast";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-ui",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -21,8 +29,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-slate-950 text-white flex flex-col">
+    <html lang="id" className={`${spaceGrotesk.variable} ${ibmPlexSans.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col">
         <ToastProvider>
           <Navigation>{children}</Navigation>
         </ToastProvider>

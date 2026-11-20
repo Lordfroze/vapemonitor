@@ -3,28 +3,37 @@
 import { HTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
-interface CardProps extends HTMLAttributes<HTMLDivElement> {}
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'elevated' | 'panel';
+}
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        'rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur-sm shadow-lg',
-        className
-      )}
-      {...props}
-    />
-  )
+  ({ className, variant = 'default', children, ...props }, ref) => {
+    const variants = {
+      default: '',
+      elevated: 'bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-md',
+      panel: 'bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-[var(--radius-md)]',
+    };
+
+    return (
+      <div
+        ref={ref}
+        className={cn(variants[variant], className)}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
 );
 
 Card.displayName = 'Card';
 
-export const CardHeader = forwardRef<HTMLDivElement, CardProps>(
+export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('flex flex-col space-y-1.5 p-6', className)}
+      className={cn('px-6 pt-6 pb-2', className)}
       {...props}
     />
   )
@@ -36,7 +45,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadi
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn('text-lg font-semibold text-white', className)}
+      className={cn('text-heading text-lg font-medium text-[var(--color-fg)]', className)}
       {...props}
     />
   )
@@ -48,7 +57,7 @@ export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<H
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn('text-sm text-slate-400', className)}
+      className={cn('text-sm text-[var(--color-fg-muted)]', className)}
       {...props}
     />
   )
@@ -56,19 +65,19 @@ export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<H
 
 CardDescription.displayName = 'CardDescription';
 
-export const CardContent = forwardRef<HTMLDivElement, CardProps>(
+export const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+    <div ref={ref} className={cn('px-6 pb-6', className)} {...props} />
   )
 );
 
 CardContent.displayName = 'CardContent';
 
-export const CardFooter = forwardRef<HTMLDivElement, CardProps>(
+export const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('flex items-center p-6 pt-0', className)}
+      className={cn('flex items-center px-6 pb-6', className)}
       {...props}
     />
   )

@@ -66,19 +66,19 @@ export function HistoryList({ initialData, initialTotal }: HistoryListProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Riwayat Aktivitas</h1>
-          <p className="text-slate-400 mt-1">Semua catatan cartridge dan liquid</p>
+          <h1 className="page-title">Riwayat Aktivitas</h1>
+          <p className="page-subtitle">Semua catatan cartridge dan liquid</p>
         </div>
       </div>
 
       {/* Filter */}
       <div className="flex flex-wrap gap-2">
         <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
+          variant={filter === 'all' ? 'primary' : 'secondary'}
           onClick={() => handleFilterChange('all')}
           className="gap-2"
         >
@@ -86,7 +86,7 @@ export function HistoryList({ initialData, initialTotal }: HistoryListProps) {
           Semua
         </Button>
         <Button
-          variant={filter === 'cartridge' ? 'default' : 'outline'}
+          variant={filter === 'cartridge' ? 'primary' : 'secondary'}
           onClick={() => handleFilterChange('cartridge')}
           className="gap-2"
         >
@@ -94,7 +94,7 @@ export function HistoryList({ initialData, initialTotal }: HistoryListProps) {
           Cartridge
         </Button>
         <Button
-          variant={filter === 'liquid' ? 'default' : 'outline'}
+          variant={filter === 'liquid' ? 'primary' : 'secondary'}
           onClick={() => handleFilterChange('liquid')}
           className="gap-2"
         >
@@ -105,78 +105,60 @@ export function HistoryList({ initialData, initialTotal }: HistoryListProps) {
 
       {/* Timeline */}
       {data.length === 0 ? (
-        <div className="text-center py-12">
-          <svg className="h-16 w-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="empty-state">
+          <svg className="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
-          <p className="text-slate-400 mb-2">
+          <h2 className="empty-state-title">
             {filter === 'all' ? 'Belum ada aktivitas' : filter === 'cartridge' ? 'Belum ada catatan cartridge' : 'Belum ada catatan liquid'}
-          </p>
-          <p className="text-sm text-slate-500">
+          </h2>
+          <p className="empty-state-desc">
             {filter === 'all' ? 'Mulai catat aktivitas pertama Anda' : 'Tambah catatan untuk melihat riwayat di sini'}
           </p>
         </div>
       ) : (
         <>
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-slate-800" aria-hidden="true" />
-            
-            <div className="space-y-6">
-              {data.map((item) => (
-                <div key={item.id} className="relative flex gap-4">
-                  {/* Timeline dot */}
-                  <div className="relative flex-shrink-0 w-12 h-12 flex items-center justify-center">
-                    <div className={`relative w-4 h-4 rounded-full border-2 ${
-                      item.type === 'cartridge' ? 'border-cyan-400 bg-cyan-500' : 'border-cyan-400 bg-cyan-500'
-                    }`} aria-hidden="true">
-                      <div className="absolute inset-0 rounded-full bg-slate-900" />
-                    </div>
+          <div className="timeline">
+            {data.map((item) => (
+              <div key={item.id} className="timeline-item">
+                <div className="timeline-dot" aria-hidden="true" />
+                <div className="timeline-content">
+                  <div className="timeline-meta">
+                    <Badge variant={item.type === 'cartridge' ? 'accent' : 'neutral'}>
+                      {item.type === 'cartridge' ? <Package className="h-3 w-3 mr-1" /> : <Droplet className="h-3 w-3 mr-1" />}
+                      {item.type === 'cartridge' ? 'Cartridge' : 'Liquid'}
+                    </Badge>
+                    <span className="text-mono text-sm text-[var(--color-fg-muted)]">{formatDateTime(item.date)}</span>
+                    <span className="text-mono text-xs text-[var(--color-fg-subtle)]">({formatRelativeTime(item.date)})</span>
                   </div>
-                  
-                  {/* Timeline content */}
-                  <div className="flex-1 min-w-0 pt-1">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <Badge variant={item.type === 'cartridge' ? 'default' : 'secondary'}>
-                            {item.type === 'cartridge' ? <Package className="h-3 w-3 mr-1" /> : <Droplet className="h-3 w-3 mr-1" />}
-                            {item.type === 'cartridge' ? 'Cartridge' : 'Liquid'}
-                          </Badge>
-                          <span className="text-sm text-slate-400 whitespace-nowrap">{formatDateTime(item.date)}</span>
-                          <span className="text-xs text-slate-500 whitespace-nowrap">({formatRelativeTime(item.date)})</span>
-                        </div>
-                        <p className="font-medium text-white truncate">{item.name || 'Tanpa nama'}</p>
-                        {hasAmount(item) && (
-                          <p className="text-sm text-cyan-400 font-mono mt-1">{item.amount} ml</p>
-                        )}
-                        {item.notes && (
-                          <p className="text-sm text-slate-500 mt-1 line-clamp-2">{item.notes}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <p className="font-medium text-[var(--color-fg)]">{item.name || 'Tanpa nama'}</p>
+                  {hasAmount(item) && (
+                    <p className="timeline-amount">{item.amount} ml</p>
+                  )}
+                  {item.notes && (
+                    <p className="timeline-notes">{item.notes}</p>
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => { if (page > 1) { setPage(page - 1); fetchData(); }}}
                 disabled={page === 1 || isLoading}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-slate-400 px-4">
+              <span className="text-mono text-sm text-[var(--color-fg-muted)] px-4">
                 Halaman {page} dari {totalPages}
               </span>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => { if (page < totalPages) { setPage(page + 1); fetchData(); }}}
                 disabled={page >= totalPages || isLoading}

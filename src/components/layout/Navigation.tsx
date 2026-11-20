@@ -32,18 +32,15 @@ export function Navigation({ children }: NavigationProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isLaptop, setIsLaptop] = useState(false);
   const [showCollapseToggle, setShowCollapseToggle] = useState(false);
 
   useEffect(() => {
-    const checkLaptop = () => {
-      const width = window.innerWidth;
-      setIsLaptop(width >= 1024 && width < 1280);
-      setShowCollapseToggle(width >= 1024);
+    const checkDesktop = () => {
+      setShowCollapseToggle(window.innerWidth >= 1024);
     };
-    checkLaptop();
-    window.addEventListener('resize', checkLaptop);
-    return () => window.removeEventListener('resize', checkLaptop);
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
   }, []);
 
   const handleNavigationClick = () => {
@@ -59,16 +56,16 @@ export function Navigation({ children }: NavigationProps) {
   return (
     <>
       {/* Mobile top bar */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur-sm">
         <div className="flex h-full items-center justify-between px-4">
-          <h1 className="text-lg font-semibold text-white">Vape Monitor</h1>
+          <h1 className="text-heading font-medium text-[var(--color-fg)]">Vape Monitor</h1>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            className="btn btn-ghost btn-icon-sm"
             aria-label={isMobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
             aria-expanded={isMobileMenuOpen}
           >
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </header>
@@ -76,7 +73,7 @@ export function Navigation({ children }: NavigationProps) {
       {/* Mobile sidebar overlay */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/50"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70"
           onClick={() => setIsMobileMenuOpen(false)}
           aria-hidden="true"
         />
@@ -87,21 +84,21 @@ export function Navigation({ children }: NavigationProps) {
         {/* Sidebar */}
         <aside
           className={cn(
-            'z-50 border-r border-slate-800 bg-slate-900/95 backdrop-blur-sm transition-all duration-300 ease-in-out flex-shrink-0 flex flex-col',
-            isSidebarCollapsed ? 'w-20' : 'w-64'
+            'sidebar flex flex-col transition-all duration-200',
+            isSidebarCollapsed ? 'sidebar-collapsed' : ''
           )}
           aria-label="Navigasi utama"
         >
-          <div className="flex h-16 items-center justify-between px-4 border-b border-slate-800">
+          <div className="sidebar-header">
             {!isSidebarCollapsed && (
-              <h1 className="text-lg font-semibold text-white truncate">Vape Monitor</h1>
+              <h1 className="text-heading font-medium text-[var(--color-fg)]">Vape Monitor</h1>
             )}
             <div className="flex items-center gap-2">
-              {/* Collapse toggle for laptop/desktop */}
+              {/* Collapse toggle for desktop */}
               {showCollapseToggle && (
                 <button
                   onClick={toggleSidebar}
-                  className="p-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                  className="btn btn-ghost btn-icon"
                   aria-label={isSidebarCollapsed ? 'Buka sidebar' : 'Tutup sidebar'}
                   aria-expanded={!isSidebarCollapsed}
                 >
@@ -111,7 +108,7 @@ export function Navigation({ children }: NavigationProps) {
             </div>
           </div>
 
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto" role="navigation" aria-label="Menu navigasi">
+          <nav className="sidebar-nav" role="navigation" aria-label="Menu navigasi">
             {navigation.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (
@@ -120,61 +117,55 @@ export function Navigation({ children }: NavigationProps) {
                   href={item.href}
                   onClick={handleNavigationClick}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    isSidebarCollapsed && 'justify-center px-2',
-                    isActive
-                      ? 'bg-cyan-600/20 text-cyan-400'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    'sidebar-item',
+                    isSidebarCollapsed && 'justify-center',
+                    isActive && 'active'
                   )}
                   aria-current={isActive ? 'page' : undefined}
                   title={isSidebarCollapsed ? item.name : undefined}
                 >
-                  <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  {!isSidebarCollapsed && <span className="truncate">{item.name}</span>}
+                  <item.icon className="sidebar-item-icon" aria-hidden="true" />
+                  {!isSidebarCollapsed && <span>{item.name}</span>}
                 </Link>
               );
             })}
           </nav>
 
           {!isSidebarCollapsed && (
-            <div className="p-4 border-t border-slate-800">
-              <p className="text-xs text-slate-500 text-center">
-                Versi 1.0.0
-              </p>
+            <div className="sidebar-footer">
+              <p className="sidebar-version">v1.0.0</p>
             </div>
           )}
         </aside>
 
         {/* Main content wrapper */}
-        <main className="flex-1 min-w-0 min-h-screen transition-all duration-300 ease-in-out">
-          <div className="p-4 lg:p-6">
-            {children}
-          </div>
+        <main className="page">
+          {children}
         </main>
       </div>
 
-      {/* Mobile: Fixed sidebar + main with margin (existing behavior) */}
+      {/* Mobile: Fixed sidebar + main with margin */}
       <div className="lg:hidden">
         {/* Mobile sidebar (fixed, slide-in) */}
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-800 bg-slate-900/95 backdrop-blur-sm transition-transform duration-300 ease-in-out',
+            'fixed inset-y-0 left-0 z-50 w-64 border-r border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur-sm transition-transform duration-300 ease-in-out',
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           )}
           aria-label="Navigasi utama"
         >
-          <div className="flex h-16 items-center justify-between px-4 border-b border-slate-800">
-            <h1 className="text-lg font-semibold text-white">Vape Monitor</h1>
+          <div className="sidebar-header">
+            <h1 className="text-heading font-medium text-[var(--color-fg)]">Vape Monitor</h1>
             <button
-              className="p-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+              className="btn btn-ghost btn-icon"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-label="Tutup menu"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto" role="navigation" aria-label="Menu navigasi">
+          <nav className="sidebar-nav" role="navigation" aria-label="Menu navigasi">
             {navigation.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (
@@ -182,67 +173,53 @@ export function Navigation({ children }: NavigationProps) {
                   key={item.name}
                   href={item.href}
                   onClick={handleNavigationClick}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-cyan-600/20 text-cyan-400'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  )}
+                  className={cn('sidebar-item', isActive && 'active')}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{item.name}</span>
+                  <item.icon className="sidebar-item-icon" aria-hidden="true" />
+                  <span>{item.name}</span>
                 </Link>
               );
             })}
           </nav>
 
-          <div className="p-4 border-t border-slate-800">
-            <p className="text-xs text-slate-500 text-center">
-              Versi 1.0.0
-            </p>
+          <div className="sidebar-footer">
+            <p className="sidebar-version">v1.0.0</p>
           </div>
         </aside>
 
         {/* Mobile sidebar overlay */}
         {isMobileMenuOpen && (
           <div
-            className="fixed inset-0 z-40 bg-black/50"
+            className="fixed inset-0 z-40 bg-black/70"
             onClick={() => setIsMobileMenuOpen(false)}
             aria-hidden="true"
           />
         )}
 
         {/* Main content wrapper (mobile) */}
-        <main className="min-h-screen pt-16 pb-20">
-          <div className="p-4">
-            {children}
-          </div>
+        <main className="page pt-14">
+          {children}
         </main>
       </div>
 
       {/* Bottom navigation for mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm" aria-label="Navigasi bawah">
-        <div className="grid grid-cols-5">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={handleNavigationClick}
-                className={cn(
-                  'flex flex-col items-center gap-1 px-2 py-3 text-xs font-medium transition-colors',
-                  isActive ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'
-                )}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <item.icon className="h-5 w-5" aria-hidden="true" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </div>
+      <nav className="bottom-nav" aria-label="Navigasi bawah">
+        {navigation.map((item) => {
+          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={handleNavigationClick}
+              className={cn('bottom-nav-item', isActive && 'active')}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <item.icon aria-hidden="true" />
+              <span>{item.name}</span>
+            </Link>
+          );
+        })}
       </nav>
     </>
   );
