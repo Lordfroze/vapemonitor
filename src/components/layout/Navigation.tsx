@@ -13,8 +13,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Shield,
+  Users,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { UserMenu } from '@/components/auth/UserMenu';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -22,6 +25,10 @@ const navigation = [
   { name: 'Liquid', href: '/liquid', icon: Droplet },
   { name: 'Riwayat', href: '/riwayat', icon: History },
   { name: 'Pengaturan', href: '/pengaturan', icon: Settings },
+];
+
+const adminNavigation = [
+  { name: 'Manajemen User', href: '/admin/users', icon: Users },
 ];
 
 interface NavigationProps {
@@ -33,6 +40,22 @@ export function Navigation({ children }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showCollapseToggle, setShowCollapseToggle] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string; role: 'user' | 'admin' } | null>(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch {
+        // User not logged in
+      }
+    }
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     const checkDesktop = () => {
@@ -52,6 +75,29 @@ export function Navigation({ children }: NavigationProps) {
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
+
+  const renderNavItems = (items: typeof navigation, collapsed: boolean) => (
+    items.map((item) => {
+      const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+      return (
+        <Link
+          key={item.name}
+          href={item.href}
+          onClick={handleNavigationClick}
+          className={cn(
+            'sidebar-item',
+            collapsed && 'justify-center',
+            isActive && 'active'
+          )}
+          aria-current={isActive ? 'page' : undefined}
+          title={collapsed ? item.name : undefined}
+        >
+          <item.icon className="sidebar-item-icon" aria-hidden="true" />
+          {!collapsed && <span>{item.name}</span>}
+        </Link>
+      );
+    })
+  );
 
   return (
     <>
@@ -108,32 +154,25 @@ export function Navigation({ children }: NavigationProps) {
             </div>
           </div>
 
-          <nav className="sidebar-nav" role="navigation" aria-label="Menu navigasi">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={handleNavigationClick}
-                  className={cn(
-                    'sidebar-item',
-                    isSidebarCollapsed && 'justify-center',
-                    isActive && 'active'
-                  )}
-                  aria-current={isActive ? 'page' : undefined}
-                  title={isSidebarCollapsed ? item.name : undefined}
-                >
-                  <item.icon className="sidebar-item-icon" aria-hidden="true" />
-                  {!isSidebarCollapsed && <span>{item.name}</span>}
-                </Link>
-              );
-            })}
+          <nav className="sidebar-nav flex-1" role="navigation" aria-label="Menu navigasi">
+            {renderNavItems(navigation, isSidebarCollapsed)}
+
+            {/* Admin navigation */}
+            {user?.role === 'admin' && (
+              <>
+                <div className="sidebar-divider" />
+                {renderNavItems(adminNavigation, isSidebarCollapsed)}
+              </>
+            )}
           </nav>
 
           {!isSidebarCollapsed && (
-            <div className="sidebar-footer">
-              <p className="sidebar-version">v1.0.0</p>
+            <div className="sidebar-footer border-t border-[var(--color-border)] p-4">
+              {user ? (
+                <UserMenu name={user.name} email={user.email} role={user.role} />
+              ) : (
+                <p className="sidebar-version">v1.0.0</p>
+              )}
             </div>
           )}
         </aside>
@@ -165,7 +204,7 @@ export function Navigation({ children }: NavigationProps) {
             </button>
           </div>
 
-          <nav className="sidebar-nav" role="navigation" aria-label="Menu navigasi">
+          <nav className="sidebar-nav flex-1 overflow-y-auto" role="navigation" aria-label="Menu navigasi">
             {navigation.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (
@@ -181,10 +220,36 @@ export function Navigation({ children }: NavigationProps) {
                 </Link>
               );
             })}
+
+            {/* Admin navigation for mobile */}
+            {user?.role === 'admin' && (
+              <>
+                <div className="sidebar-divider" />
+                {adminNavigation.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={handleNavigationClick}
+                      className={cn('sidebar-item', isActive && 'active')}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      <item.icon className="sidebar-item-icon" aria-hidden="true" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
           </nav>
 
-          <div className="sidebar-footer">
-            <p className="sidebar-version">v1.0.0</p>
+          <div className="sidebar-footer border-t border-[var(--color-border)] p-4">
+            {user ? (
+              <UserMenu name={user.name} email={user.email} role={user.role} />
+            ) : (
+              <p className="sidebar-version">v1.0.0</p>
+            )}
           </div>
         </aside>
 

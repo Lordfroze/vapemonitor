@@ -1,133 +1,199 @@
-# Issue: Tampilan Belum Responsive pada Resolusi Laptop
+# Issue: Fitur Autentikasi dan Manajemen User
 
-## Deskripsi Masalah
-Tampilan aplikasi Vape Monitor **tidak responsive dengan baik pada resolusi layar laptop** (typical 1366×768, 1440×900, 1536×864), namun **sudah responsive dengan baik pada resolusi di bawah laptop** (mobile/tablet < 1024px) dan desktop besar (> 1280px).
+## Deskripsi
+Menambahkan sistem autentikasi ke aplikasi Vape Monitor dengan dukungan role-based access control (RBAC) untuk membedakan akses antara **User** dan **Admin**.
 
-## Breakpoint Tailwind CSS yang Digunakan
-| Breakpoint | Prefix | Min Width | Target Device |
-|------------|--------|-----------|---------------|
-| `sm`       | `sm:`  | 640px     | Large phones / small tablets |
-| `md`       | `md:`  | 768px     | Tablets |
-| `lg`       | `lg:`  | 1024px    | **Laptops (masalah utama)** |
-| `xl`       | `xl:`  | 1280px    | Desktop |
-| `2xl`      | `2xl:` | 1536px    | Large desktop |
+---
 
-## Masalah yang Ditemukan
+## Requirements
 
-### 1. Sidebar Navigation Mengganggu Ruang Konten (Navigation.tsx:66-71)
-```tsx
-<aside className={cn(
-  'fixed lg:static inset-y-0 left-0 z-50 w-64 border-r border-slate-800 bg-slate-900/95 backdrop-blur-sm',
-  'transform transition-transform duration-300 ease-in-out lg:translate-x-0',
-  isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-)}>
+### 1. Database Schema - Tabel Users
+Tambahkan tabel `users` ke schema Drizzle (`src/db/schema.ts`):
+
+```typescript
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  role: varchar('role', { length: 20 }).notNull().default('user'), // 'user' | 'admin'
+  avatarUrl: varchar('avatar_url', { length: 500 }),
+  isActive: boolean('is_active').notNull().default(true),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  emailIdx: index('users_email_idx').on(table.email),
+  roleIdx: index('users_role_idx').on(table.role),
+}));
 ```
-- **Masalah**: Sidebar lebar `w-64` (256px) selalu terlihat pada breakpoint `lg` (1024px+)
-- **Dampak**: Pada laptop 1366px, sisa lebar konten hanya ~1110px; pada 1440px hanya ~1184px
-- **Solusi yang Diperlukan**: Tambahkan breakpoint `xl` untuk sidebar, atau buat sidebar collapsible pada laptop
 
-### 2. Main Content Margin Masalah (Navigation.tsx:116)
-```tsx
-<main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-20 lg:pb-0">
+### 2. Relasi dengan Data Existing
+- `cartridgeLogs` dan `liquidLogs` perlu dikaitkan dengan `userId` (foreign key ke `users.id`)
+- User hanya bisa melihat/kelola data miliknya sendiri
+- Admin bisa melihat/kelola data semua user
+
+### 3. Authentication Flow
+- **Login**: Email + Password (bcrypt hash)
+- **Session**: JWT token dalam HttpOnly cookie (secure, sameSite: 'lax')
+- **Logout**: Hapus cookie, invalidate session
+- **Register**: Hanya untuk user pertama (self-register) atau via admin invitation
+
+### 4. Role Definitions
+
+| Role | Akses |
+|------|-------|
+| **User** | - Dashboard pribadi<br>- CRUD cartridge & liquid milik sendiri<br>- Riwayat pribadi<br>- Pengaturan profil sendiri |
+| **Admin** | - Semua akses User<br>- **Menu Admin: Manajemen User** (lihat, tambah, edit, hapus, nonaktifkan user)<br>- Lihat dashboard semua user<br>- Export data semua user<br>- Pengaturan sistem |
+
+### 5. Menu Admin - Manajemen User
+Halaman `/admin/users` (hanya akses admin):
+- Tabel daftar user dengan kolom: Nama, Email, Role, Status (Aktif/Nonaktif), Terakhir Login, Aksi
+- Fitur:
+  - **Tambah User**: Form email, nama, password awal, role (user/admin)
+  - **Edit User**: Ubah nama, email, role, status aktif
+  - **Reset Password**: Generate password baru & kirim via email (atau tampilkan sekali)
+  - **Nonaktifkan/Aktifkan**: Toggle `isActive`
+  - **Hapus User**: Soft delete (set isActive=false) atau hard delete dengan konfirmasi
+  - **Paginasi & Search**: Cari by nama/email, filter by role/status
+  - **Export CSV**: Export daftar user
+
+### 6. UI/UX Requirements
+- **Login Page**: `/login` - Clean, minimal, consistent dengan design system
+- **Protected Routes**: Middleware untuk redirect ke `/login` jika unauthenticated
+- **Role-based Navigation**: Admin melihat menu "Admin" di navigation
+- **User Avatar/Menu**: Dropdown di header dengan nama, role, logout, link ke profil
+- **Loading/Empty/Error States**: Semua halaman admin & auth
+
+### 7. Security
+- Password hashing: bcrypt (cost factor 12)
+- JWT secret di environment variable
+- Rate limiting pada endpoint login (max 5 attempts per 15 min per IP)
+- CSRF protection untuk form mutasi
+- Secure headers (helmet/next.js defaults)
+- Audit log untuk aksi admin (opsional, phase 2)
+
+---
+
+## Implementation Plan
+
+### Phase 1: Foundation
+- [ ] Update `schema.ts` - tambah tabel `users`, relasi ke logs
+- [ ] Drizzle migration generate & push
+- [ ] Auth utilities: hash, verify, JWT sign/verify, cookie helpers
+- [ ] Middleware auth protection
+
+### Phase 2: Auth Pages & API
+- [ ] API routes: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+- [ ] Login page `/login` dengan form validation (zod + react-hook-form)
+- [ ] Register flow (initial admin setup)
+
+### Phase 3: Role-based Access
+- [ ] Update Navigation - tambah user menu, admin menu conditional
+- [ ] Protect existing pages dengan middleware
+- [ ] Update queries/actions untuk filter by userId (non-admin)
+
+### Phase 4: Admin Panel
+- [ ] Layout admin (`/admin/*`)
+- [ ] User management page dengan tabel, modal forms
+- [ ] API routes untuk CRUD user (admin only)
+- [ ] Search, filter, paginasi, export
+
+### Phase 5: Polish
+- [ ] Toast notifications untuk aksi auth & admin
+- [ ] Loading skeletons
+- [ ] Responsive design
+- [ ] Accessibility (ARIA labels, keyboard nav)
+- [ ] Tests (unit + e2e)
+
+---
+
+## Technical Notes
+
+### Environment Variables (`.env`)
+```env
+# Auth
+AUTH_SECRET="generate-with-openssl-rand-base64-32"
+AUTH_COOKIE_NAME="vape-monitor-session"
+BCRYPT_COST=12
+
+# Database (existing)
+DATABASE_URL="postgresql://..."
 ```
-- **Masalah**: `lg:ml-64` diterapkan mulai 1024px, tapi sidebar tidak collapsible
-- **Dampak**: Konten tergeser ke kanan 256px tanpa opsi untuk menyembunyikan sidebar
 
-### 3. Stats Cards Grid Terlalu Sempit (DashboardContent.tsx:16)
-```tsx
-<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+### Dependencies to Add
+```bash
+npm install bcryptjs jose zod @hookform/resolvers
+npm install -D @types/bcryptjs
 ```
-- **Masalah**: Di laptop (1024px - 1279px) hanya 2 kolom (`sm:grid-cols-2`), card menjadi terlalu lebar dan pendek
-- **Seharusnya**: 3 kolom pada laptop (`md:grid-cols-3` atau `lg:grid-cols-3`), 4 kolom pada desktop
 
-### 4. Monitor Cards Grid (DashboardContent.tsx:95)
-```tsx
-<div className="grid gap-4 sm:grid-cols-2">
+### File Structure Additions
 ```
-- **Masalah**: Selalu 2 kolom mulai `sm` (640px), pada laptop 2 card monitor berdampingan terlalu lebar
-- **Solusi**: `md:grid-cols-1 lg:grid-cols-2` atau `xl:grid-cols-2`
-
-### 5. Toast Notification Position (CartridgeList.tsx:157-168, LiquidList.tsx:170-182)
-```tsx
-<div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right">
-  <div className="... min-w-[300px] max-w-md ...">
+src/
+├── app/
+│   ├── (auth)/
+│   │   └── login/page.tsx
+│   ├── (dashboard)/
+│   │   └── ...existing pages
+│   └── admin/
+│       ├── layout.tsx
+│       └── users/page.tsx
+├── components/
+│   ├── auth/
+│   │   ├── LoginForm.tsx
+│   │   └── UserMenu.tsx
+│   └── admin/
+│       ├── UserTable.tsx
+│       ├── UserFormModal.tsx
+│       └── UserFilters.tsx
+├── lib/
+│   ├── auth/
+│   │   ├── session.ts
+│   │   ├── password.ts
+│   │   └── middleware.ts
+│   └── db/
+│       └── queries/
+│           ├── users.ts
+│           └── admin.ts
+├── actions/
+│   ├── auth.ts
+│   └── admin.ts
+└── middleware.ts
 ```
-- **Masalah**: `min-w-[300px] max-w-md` (288px - 448px) terlalu lebar untuk laptop kecil
-- **Dampak**: Toast menutupi konten penting di sisi kanan layar laptop
 
-### 6. Dialog Max Width (CartridgeList.tsx:117, LiquidList.tsx:129)
-```tsx
-<DialogContent className="max-w-md">
-```
-- **Masalah**: `max-w-md` (448px) terlalu sempit untuk form di laptop, terlalu lebar untuk mobile
-- **Solusi**: Responsive `max-w-sm sm:max-w-md lg:max-w-lg`
+---
 
-### 7. Header Layout Flex Wrap (page.tsx:14, CartridgeList.tsx:104, LiquidList.tsx:116)
-```tsx
-<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-```
-- **Masalah**: Hanya `sm:flex-row`, pada laptop tinggi layar terbatas (768px), header memakan ruang vertikal
-- **Solusi**: Tambah `md:flex-row` atau optimasi padding
+## Acceptance Criteria
 
-## Resolusi Laptop Umum & Masalah Terkait
+1. ✅ User bisa login dengan email & password
+2. ✅ Session persist setelah refresh browser
+3. ✅ User hanya melihat data miliknya sendiri
+4. ✅ Admin bisa akses `/admin/users`
+5. ✅ Admin bisa CRUD user (tambah, edit, hapus, toggle active)
+6. ✅ Navigation menampilkan menu sesuai role
+7. ✅ Logout berfungsi & redirect ke login
+8. ✅ Middleware redirect unauthenticated user ke `/login`
+9. ✅ Responsive di mobile & desktop
+10. ✅ TypeScript strict mode pass, zero ESLint errors
 
-| Resolusi | Lebar | Breakpoint | Masalah Utama |
-|----------|-------|------------|---------------|
-| 1366×768 | 1366px | `lg` | Sidebar 256px + konten 1110px = sempit; toast overlap |
-| 1440×900 | 1440px | `lg` | Sidebar 256px + konten 1184px; grid 2 kolom lebar |
-| 1536×864 | 1536px | `xl` | Masalah mulai teratasi tapi sidebar masih fixed |
-| 1920×1080 | 1920px | `xl`/`2xl` | Sudah nyaman |
+---
 
-## Prioritas Perbaikan
+## Priority
+**High** - Core feature untuk multi-user support
 
-### 🔴 High Priority
-1. **Sidebar collapsible/responsive** - Tambah toggle sidebar di laptop, atau breakpoint `xl` untuk sidebar fixed
-2. **Stats grid responsive** - Tambah `md:grid-cols-3 lg:grid-cols-4`
-3. **Toast position/size responsive** - `max-w-sm sm:max-w-md` dan position adaptive
+## Estimated Effort
+- Phase 1-2: ~2-3 hari
+- Phase 3: ~1-2 hari
+- Phase 4: ~2-3 hari
+- Phase 5: ~1-2 hari
+- **Total: ~6-10 hari kerja**
 
-### 🟡 Medium Priority
-4. **Monitor cards grid** - `md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2`
-5. **Dialog max-width responsive** - `max-w-sm sm:max-w-md lg:max-w-lg`
-6. **Header layout** - Optimasi untuk tinggi layar laptop (768px)
+---
 
-### 🟢 Low Priority
-7. **Bottom navigation mobile** - Sudah baik, pastikan tidak overlap dengan toast
-8. **Print styles** - Tambah `@media print` untuk sidebar
-
-## Testing Checklist
-
-### Resolusi Wajib Test
-- [ ] 1366×768 (laptop budget)
-- [ ] 1440×900 (MacBook Air / laptop standar)
-- [ ] 1536×864 (laptop 15.6" scaling 125%)
-- [ ] 1920×1080 (desktop / laptop FHD)
-- [ ] 375×667 (mobile - iPhone SE)
-- [ ] 768×1024 (tablet - iPad)
-
-### Skenario Test
-- [ ] Navigasi sidebar buka/tutup di laptop
-- [ ] Grid stats card layout di setiap breakpoint
-- [ ] Toast notification tidak menutupi konten
-- [ ] Dialog form ukuran pas di laptop
-- [ ] Scroll konten tidak terpotong sidebar
-- [ ] Horizontal scroll tidak muncul
-
-## Referensi Kode Terkait
-
-| File | Baris | Komponen |
-|------|-------|----------|
-| `src/components/layout/Navigation.tsx` | 42-120 | Sidebar, mobile header, bottom nav |
-| `src/components/layout/Navigation.tsx` | 116 | Main content wrapper |
-| `src/app/DashboardContent.tsx` | 16 | Stats cards grid |
-| `src/app/DashboardContent.tsx` | 95 | Monitor cards grid |
-| `src/app/page.tsx` | 14 | Dashboard header |
-| `src/components/cartridge/CartridgeList.tsx` | 104 | Cartridge header |
-| `src/components/cartridge/CartridgeList.tsx` | 117, 157 | Dialog & Toast |
-| `src/components/liquid/LiquidList.tsx` | 116 | Liquid header |
-| `src/components/liquid/LiquidList.tsx` | 129, 170 | Dialog & Toast |
-
-## Catatan Tambahan
-- Gunakan `container` class Tailwind untuk max-width konsisten
-- Pertimbangkan CSS Container Queries untuk komponen yang benar-benar responsive
-- Test dengan DevTools device toolbar dan resize manual browser
-- Perhatikan `safe-area-inset-*` untuk notch/lipatan layar modern
+## Related Files
+- `src/db/schema.ts` - Schema database
+- `src/middleware.ts` - Auth middleware (baru)
+- `src/lib/auth/*` - Auth utilities (baru)
+- `src/app/(auth)/login/page.tsx` - Login page (baru)
+- `src/app/admin/users/page.tsx` - Admin user management (baru)
+- `src/components/layout/Navigation.tsx` - Update untuk user menu

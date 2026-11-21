@@ -8,6 +8,13 @@
       "when": 1794832085169,
       "tag": "0000_abnormal_spiral",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795276548071,
+      "tag": "0001_solid_black_crow",
+      "breakpoints": true
     }
   ]
 }
